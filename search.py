@@ -86,18 +86,158 @@ def depthFirstSearch(problem):
     print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # environment
+    isGoalState = problem.isGoalState
+    # fn: (next state/location, action, cost)
+    getSuccessors = problem.getSuccessors
+    currentLocation = problem.getStartState()  # (x, y)
+
+    # our data structure needed for dfs
+    # import numpy as np
+    # visited = np.full((256, 256), False, dtype=bool)  # location: boolean array
+    visited = []  # visited location list
+    actionSequence = util.Stack()  # will register path directions
+
+    def depthFirstTraverse(successor):
+
+        # expanding given node
+        actionSequence.push(successor[1])
+        currentLocation = successor[0]
+        # visited[currentLocation[0]][currentLocation[1]] = True
+        visited.append(currentLocation)
+
+        # checking if visiting goal state
+        goalStateCheck = isGoalState(currentLocation)
+        if(goalStateCheck):
+            return True
+
+        # creating adjacent nodes
+        availableSuccessors = getSuccessors(currentLocation)
+        for successor in availableSuccessors:
+            # if(not visited[successor[0][0]][successor[0][1]]):
+            if(successor[0] not in visited):
+                if (depthFirstTraverse(successor)):
+                    return True
+
+        # clearing direction to unrelevant nodes(of unsuccessful path)
+        actionSequence.pop()
+        return False
+
+    # expanding root(initial) node
+    # visited[currentLocation[0]][currentLocation[1]] = True
+    visited.append(currentLocation)
+    goalStateCheck = isGoalState(currentLocation)
+    if(goalStateCheck):
+        return []
+    availableSuccessors = getSuccessors(currentLocation)
+    for successor in availableSuccessors:
+        # if(not visited[successor[0][0]][successor[0][1]]):
+        if(successor[0] not in visited):
+            if(depthFirstTraverse(successor)):
+                break
+
+    return actionSequence.list
+
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    isGoalState = problem.isGoalState
+    # fn: (next state/location, action, cost)
+    getSuccessors = problem.getSuccessors
+    currentLocation = problem.getStartState()  # (x, y)
+
+    # our data structure needed for dfs
+    visited = []  # visited location list
+    fringe = util.Queue()  # keeps actions from shallowest to deepest
+    pathSequence = util.Queue()  # will register all path directions
+
+    # initializing root node
+    visited.append(currentLocation)
+    goalStateCheck = isGoalState(currentLocation)
+    if(goalStateCheck):
+        return []
+    pathSequence.push([])
+
+    while(True):
+
+        # expand created node in fringe
+        if(not fringe.isEmpty()):  # first loop has empty fringe(no action at first)
+            successor = fringe.pop()
+            currentLocation = successor[0]
+        # continuing last path
+        currentPath = pathSequence.pop()
+
+        # starting to create child nodes by expansion
+        if(isGoalState(currentLocation)):  # check state before expansion
+            return currentPath
+        availableSuccessors = getSuccessors(currentLocation)
+
+        for successor in availableSuccessors:
+            if(successor[0] not in visited):
+                fringe.push(successor)
+                # visit happen during creation
+                visited.append(successor[0])
+                pathSequence.push(currentPath+[successor[1]])
+
+        if(fringe.isEmpty()):  # target not found
+            break
+
+    return []
+
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    isGoalState = problem.isGoalState
+    # fn: (next state/location, action, cost)
+    getSuccessors = problem.getSuccessors
+    currentLocation = problem.getStartState()  # (x, y)
+
+    # our data structure needed for dfs
+    visited = []  # visited location list
+    fringe = util.PriorityQueue()  # keeps actions from shallowest to deepest
+    pathSequence = util.PriorityQueue()  # will register all path directions
+    pathCost = {}  # will keep path cost update
+
+    # initializing root node
+    visited.append(currentLocation)
+    goalStateCheck = isGoalState(currentLocation)
+    if(goalStateCheck):
+        return []
+    pathSequence.push([], 0)
+    pathCost[str(currentLocation)] = 0
+
+    while(True):
+
+        # expand created node in fringe
+        if(not fringe.isEmpty()):  # first loop has empty fringe(no action at first)
+            successor = fringe.pop()
+            currentLocation = successor[0]
+        # continuing last path
+        currentPath = pathSequence.pop()
+        cost = pathCost[str(currentLocation)]
+
+        # starting to create child nodes by expansion
+        if(isGoalState(currentLocation)):  # check state before expansion
+            return currentPath
+        availableSuccessors = getSuccessors(currentLocation)
+
+        for successor in availableSuccessors:
+            if((successor[0] not in visited) or
+               # or if a lower cost exist to a visited node
+               (pathCost.get(str(successor[0])) != None and
+                    (cost+successor[2] < pathCost[str(successor[0])]))):
+                pathCost[str(successor[0])] = cost+successor[2]
+                fringe.push(successor, cost+successor[2])
+                pathSequence.push(
+                    currentPath+[successor[1]], cost+successor[2])
+                # visit happen during creation
+                visited.append(successor[0])
+
+        if(fringe.isEmpty()):  # target not found
+            break
+
+    return []
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -106,10 +246,62 @@ def nullHeuristic(state, problem=None):
     """
     return 0
 
+
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    isGoalState = problem.isGoalState
+    # fn: (next state/location, action, cost)
+    getSuccessors = problem.getSuccessors
+    currentLocation = problem.getStartState()  # (x, y)
+    def getHueristic(state): return heuristic(state, problem)
+
+    # our data structure needed for dfs
+    visited = []  # visited location list
+    fringe = util.PriorityQueue()  # keeps actions from shallowest to deepest
+    pathSequence = util.PriorityQueue()  # will register all path directions
+    pathCost = {}  # will keep path cost update
+
+    # initializing root node
+    visited.append(currentLocation)
+    goalStateCheck = isGoalState(currentLocation)
+    if(goalStateCheck):
+        return []
+    pathSequence.push([], 0 + + getHueristic(currentLocation))
+    pathCost[str(currentLocation)] = 0 + getHueristic(currentLocation)
+
+    while(True):
+
+        # expand created node in fringe
+        if(not fringe.isEmpty()):  # first loop has empty fringe(no action at first)
+            successor = fringe.pop()
+            currentLocation = successor[0]
+        # continuing last path
+        currentPath = pathSequence.pop()
+        cost = pathCost[str(currentLocation)]
+
+        # starting to create child nodes by expansion
+        if(isGoalState(currentLocation)):  # check/test state before expansion
+            return currentPath
+        availableSuccessors = getSuccessors(currentLocation)
+
+        for successor in availableSuccessors:
+            if((successor[0] not in visited) or
+               # or if a lower cost exist to a visited node
+               (pathCost.get(str(successor[0])) != None and
+                    (cost + successor[2] < pathCost[str(successor[0])]))):
+                newCost = cost + successor[2]  # g funtion 
+                predictionCost = newCost + getHueristic(successor[0]) # f function
+                pathCost[str(successor[0])] = newCost
+                fringe.push(successor, predictionCost)
+                pathSequence.push(
+                    currentPath+[successor[1]], predictionCost)
+                # visit happen during creation
+                visited.append(successor[0])
+
+        if(fringe.isEmpty()):  # target not found
+            break
+
+    return []
 
 
 # Abbreviations
