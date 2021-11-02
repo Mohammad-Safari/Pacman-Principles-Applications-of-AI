@@ -93,50 +93,43 @@ def depthFirstSearch(problem):
     currentLocation = problem.getStartState()  # (x, y)
 
     # our data structure needed for dfs
-    # import numpy as np
-    # visited = np.full((256, 256), False, dtype=bool)  # location: boolean array
     visited = []  # visited location list
-    actionSequence = util.Stack()  # will register path directions
+    directionSequence = util.Stack()  # will register path directions
 
     def depthFirstTraverse(successor):
 
         # expanding given node
-        actionSequence.push(successor[1])
-        currentLocation = successor[0]
-        # visited[currentLocation[0]][currentLocation[1]] = True
+        currentLocation, direction, cost = successor
+        directionSequence.push(direction)
         visited.append(currentLocation)
 
         # checking if visiting goal state
-        goalStateCheck = isGoalState(currentLocation)
-        if(goalStateCheck):
+        if(isGoalState(currentLocation)):
             return True
 
         # creating adjacent nodes
         availableSuccessors = getSuccessors(currentLocation)
         for successor in availableSuccessors:
-            # if(not visited[successor[0][0]][successor[0][1]]):
             if(successor[0] not in visited):
                 if (depthFirstTraverse(successor)):
                     return True
 
         # clearing direction to unrelevant nodes(of unsuccessful path)
-        actionSequence.pop()
+        directionSequence.pop()
         return False
 
     # expanding root(initial) node
-    # visited[currentLocation[0]][currentLocation[1]] = True
     visited.append(currentLocation)
-    goalStateCheck = isGoalState(currentLocation)
-    if(goalStateCheck):
+    if(isGoalState(currentLocation)):
         return []
     availableSuccessors = getSuccessors(currentLocation)
+    # traversing in depth
     for successor in availableSuccessors:
-        # if(not visited[successor[0][0]][successor[0][1]]):
         if(successor[0] not in visited):
             if(depthFirstTraverse(successor)):
                 break
 
-    return actionSequence.list
+    return directionSequence.list
 
 
 def breadthFirstSearch(problem):
@@ -158,8 +151,8 @@ def breadthFirstSearch(problem):
         return []
     pathSequence.push([])
 
+    # traversing in breadth
     while(True):
-
         # expand created node in fringe
         if(not fringe.isEmpty()):  # first loop has empty fringe(no action at first)
             successor = fringe.pop()
