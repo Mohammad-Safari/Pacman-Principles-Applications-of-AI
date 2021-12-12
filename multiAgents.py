@@ -317,9 +317,50 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         All ghosts should be modeled as choosing uniformly at random from their
         legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        agents = gameState.getNumAgents()
+        lastGhost = agents-1
+        maxScore = 10**10
 
+        def minimaxPacman(state=gameState, depth=1):
+            # before pacmans turns, it can win or lose
+            # base condition of problem division is reaching beyond depth
+            if(state.isWin() or state.isLose() or depth > self.depth):
+                return self.evaluationFunction(state)
+
+            # expanding tree of pacman choices and choosing
+            # max value in combination of subproblems
+            legalMoves = state.getLegalActions(0)
+            previousScore, previousMove = -maxScore, None
+            for move in legalMoves:
+                score = minimaxGhost(
+                    state.generateSuccessor(0, move), depth, 1)
+                if (score > previousScore):
+                    previousScore, previousMove = score, move
+
+            if (depth == 1):  # on first call(top depth) return action instead of score
+                return previousMove
+            return previousScore
+
+        def minimaxGhost(state, depth, agent):
+            # pacman could have win or lose in this turn by preceding move
+            if (state.isWin() or state.isLose()):
+                return self.evaluationFunction(state)
+
+            # expanding tree for ghost agent moves
+            legalMoves = state.getLegalActions(agent)
+            previousScore = 0
+            for move in legalMoves:
+                if (agent == lastGhost):
+                    # this is last ghost move and pacman should move next turn
+                    previousScore += minimaxPacman(
+                        state.generateSuccessor(agent, move), depth+1)
+                else:
+                    previousScore += minimaxGhost(state.generateSuccessor(
+                        agent, move), depth, agent+1)
+            # min score of ghost is returned
+            return previousScore/len(legalMoves)
+
+        return minimaxPacman()
 
 def betterEvaluationFunction(currentGameState):
     """
