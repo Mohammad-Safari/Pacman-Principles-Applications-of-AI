@@ -239,8 +239,70 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        agents = gameState.getNumAgents()
+        lastGhost = agents-1
+        maxScore = 10**10
+        # alpha is meant to be the best hapenning score of the maximizing player
+        # beta is meant to be the worst hapenning score of the minimizing player
+
+        def minimaxPacman(state=gameState, depth=1, alpha=-maxScore, beta=maxScore):
+            # before pacmans turns, it can win or lose
+            # base condition of problem division is reaching beyond depth
+            if(state.isWin() or state.isLose() or depth > self.depth):
+                return self.evaluationFunction(state)
+
+            # expanding tree of pacman choices and choosing
+            # max value in combination of subproblems
+            legalMoves = state.getLegalActions(0)
+            previousScore, previousMove = -maxScore, None
+            for move in legalMoves:
+                score = minimaxGhost(
+                    state.generateSuccessor(0, move), depth, alpha, beta, 1)
+                if (score > previousScore):
+                    previousScore, previousMove = score, move
+                # prunning
+                # set alpha to max score of pacman
+                alpha = previousScore if previousScore > alpha else alpha
+                # if the current best score of pacman is already more than beta(least score from parent minimizer), prune
+                # because no way maximizer could send lower than beta to minimizer to minimize ghost score
+                # this cannot effect parent minimum
+                if(alpha > beta):
+                    break
+
+            return previousMove if depth == 1 else previousScore
+
+        def minimaxGhost(state, depth, alpha, beta, agent):
+            # pacman could have win or lose in this turn by preceding move
+            if (state.isWin() or state.isLose()):
+                return self.evaluationFunction(state)
+
+            # expanding tree for ghost agent moves
+            legalMoves = state.getLegalActions(agent)
+            previousScore, previousMove = maxScore, None
+            for move in legalMoves:
+                if (agent == lastGhost):
+                    # this is last ghost move and pacman should move next turn
+                    score = minimaxPacman(
+                        state.generateSuccessor(agent, move), depth+1, alpha, beta)
+                    if (score < previousScore):
+                        previousScore, previousMove = score, move
+                else:
+                    score = minimaxGhost(state.generateSuccessor(
+                        agent, move), depth, alpha, beta, agent+1)
+                    if (score < previousScore):
+                        previousScore, previousMove = score, move
+                # prunning
+                # set beta min score of ghost
+                beta = previousScore if previousScore < beta else beta
+                # if the current least score of ghost is already lesser than alpha(most score from parent maximizer), prune
+                # because no way minimizer could send more than beta to maximizer to minimize ghost score
+                # this cannot not effect parent maximum
+                if(alpha > beta):
+                    break
+            # min score of ghost is returned
+            return previousScore
+
+        return minimaxPacman()
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
