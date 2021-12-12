@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -14,7 +14,8 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util
+import random
+import util
 
 from game import Agent
 
@@ -42,10 +43,13 @@ class ReflexAgent(Agent):
         legalMoves = gameState.getLegalActions()
 
         # Choose one of the best actions
-        scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
+        scores = [self.evaluationFunction(
+            gameState, action) for action in legalMoves]
         bestScore = max(scores)
-        bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices)  # Pick randomly among the best
+        bestIndices = [index for index in range(
+            len(scores)) if scores[index] == bestScore]
+        # Pick randomly among the best
+        chosenIndex = random.choice(bestIndices)
 
         "Add more of your code here if you want to"
 
@@ -72,9 +76,46 @@ class ReflexAgent(Agent):
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        newCapsules = successorGameState.getCapsules()
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        # the last distance to the closest food
+        lastClosestFoodDist = min(manhattanDistance(newPos, food) for food in currentGameState.getFood().asList()) \
+            if not len(newFood.asList()) == 0 else 999
+        # the distance to the closest food
+        closestFoodDist = min(manhattanDistance(newPos, food) for food in newFood.asList()) \
+            if not len(newFood.asList()) == 0 else 999
+        # the distance to the closest ghost
+        closestGhostDist = min(manhattanDistance(newPos, ghost.getPosition()) for ghost in newGhostStates) \
+            if not len(newGhostStates) == 0 else 999
+
+        maxNegPoint = -200
+        maxPosPoint = 100
+        nearDanger = 3
+        isScary = False
+
+        # if ghost is not near, no need to worry a lot;
+        # but if it is near, then it is scary and can cost life
+        # 1)
+        # ghostDistEval = 0 if (closestGhostDist > 2*nearDanger) else \
+        #     maxNegPoint/closestGhostDist if (closestGhostDist > 2*nearDanger) else maxNegPoint
+        # 2)
+        ghostDistEval = 0 if (closestGhostDist > nearDanger) else maxNegPoint
+
+        # *) if ghost is not near, try to eat food really hard;
+        # but if it is near, then dont try hard as it costs life
+        # *) if action cause eating dots is greate and if it take us near to dots,
+        # still good else if getting distance from dot, with the more distance,
+        # the lower evaluation score it gets
+        # *) also we prefer a range of safe moves instead of stopping
+        foodDistEval = maxPosPoint if (currentGameState.getNumFood()>successorGameState.getNumFood()) else \
+           maxPosPoint/2 if (lastClosestFoodDist>closestFoodDist) else maxPosPoint/closestFoodDist \
+           + 0 if action!='Stop' else random.randrange(-nearDanger*2,nearDanger*2)
+
+        # score change in environment is important like eating near ghost in scary mode   
+        diffScore = successorGameState.getScore() - currentGameState.getScore()
+
+        finalEval = ghostDistEval * (-1 if isScary else 1) + foodDistEval + diffScore
+        return finalEval 
 
 
 def scoreEvaluationFunction(currentGameState):
