@@ -75,7 +75,8 @@ class ReflexAgent(Agent):
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        newScaredTimes = [
+            ghostState.scaredTimer for ghostState in newGhostStates]
         newCapsules = successorGameState.getCapsules()
 
         # the last distance to the closest food
@@ -107,15 +108,16 @@ class ReflexAgent(Agent):
         # still good else if getting distance from dot, with the more distance,
         # the lower evaluation score it gets
         # *) also we prefer a range of safe moves instead of stopping
-        foodDistEval = maxPosPoint if (currentGameState.getNumFood()>successorGameState.getNumFood()) else \
-           maxPosPoint/2 if (lastClosestFoodDist>closestFoodDist) else maxPosPoint/closestFoodDist \
-           + 0 if action!='Stop' else random.randrange(-nearDanger*2,nearDanger*2)
+        foodDistEval = maxPosPoint if (currentGameState.getNumFood() > successorGameState.getNumFood()) else \
+            maxPosPoint/2 if (lastClosestFoodDist > closestFoodDist) else maxPosPoint/closestFoodDist \
+            + 0 if action != 'Stop' else random.randrange(-nearDanger*2, nearDanger*2)
 
-        # score change in environment is important like eating near ghost in scary mode   
+        # score change in environment is important like eating near ghost in scary mode
         diffScore = successorGameState.getScore() - currentGameState.getScore()
 
-        finalEval = ghostDistEval * (-1 if isScary else 1) + foodDistEval + diffScore
-        return finalEval 
+        finalEval = ghostDistEval * \
+            (-1 if isScary else 1) + foodDistEval + diffScore
+        return finalEval
 
 
 def scoreEvaluationFunction(currentGameState):
@@ -178,8 +180,54 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        agents = gameState.getNumAgents()
+        lastGhost = agents-1
+        maxScore = 10**10
+
+        def minimaxPacman(state=gameState, depth=1):
+            # before pacmans turns, it can win or lose
+            # base condition of problem division is reaching beyond depth
+            if(state.isWin() or state.isLose() or depth > self.depth):
+                return self.evaluationFunction(state)
+
+            # expanding tree of pacman choices and choosing
+            # max value in combination of subproblems
+            legalMoves = state.getLegalActions(0)
+            previousScore, previousMove = -maxScore, None
+            for move in legalMoves:
+                score = minimaxGhost(
+                    state.generateSuccessor(0, move), depth, 1)
+                if (score > previousScore):
+                    previousScore, previousMove = score, move
+
+            if (depth == 1):  # on first call(top depth) return action instead of score
+                return previousMove
+            return previousScore
+
+        def minimaxGhost(state, depth, agent):
+            # pacman could have win or lose in this turn by preceding move
+            if (state.isWin() or state.isLose()):
+                return self.evaluationFunction(state)
+
+            # expanding tree for ghost agent moves
+            legalMoves = state.getLegalActions(agent)
+            previousScore, previousMove = maxScore, None
+            for move in legalMoves:
+                if (agent == lastGhost):
+                    # this is last ghost move and pacman should move next turn
+                    score = minimaxPacman(
+                        state.generateSuccessor(agent, move), depth+1)
+                    if (score < previousScore):
+                        previousScore, previousMove = score, move
+                else:
+                    score = minimaxGhost(state.generateSuccessor(
+                        agent, move), depth, agent+1)
+                    if (score < previousScore):
+                        previousScore, previousMove = score, move
+            # min score of ghost is returned
+            return previousScore
+
+        return minimaxPacman()
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
