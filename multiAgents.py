@@ -294,12 +294,12 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 # prunning
                 # set beta min score of ghost
                 beta = previousScore if previousScore < beta else beta
-                # if the current least score of ghost is already lesser than alpha(most score from parent maximizer), prune
-                # because no way minimizer could send more than beta to maximizer to minimize ghost score
+                # if the current least score of pacman happened by ghost is already lesser than alpha(most score from parent maximizer), prune
+                # because no way minimizer could send more than beta to maximizer to minimize pacman score(by ghost)
                 # this cannot not effect parent maximum
                 if(alpha > beta):
                     break
-            # min score of ghost is returned
+            # min score of pacman by ghost is returned
             return previousScore
 
         return minimaxPacman()
