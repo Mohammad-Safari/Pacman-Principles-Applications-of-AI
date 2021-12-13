@@ -369,8 +369,50 @@ def betterEvaluationFunction(currentGameState):
 
     DESCRIPTION: <write something here so we know what you did>
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    curPos = currentGameState.getPacmanPosition()
+    curFood = currentGameState.getFood()
+    curGhostStates = currentGameState.getGhostStates()
+    curScaredTimes = [ghostState.scaredTimer for ghostState in curGhostStates]
+    curCapsules = currentGameState.getCapsules()
+
+    mostDist = 999
+    maxNegPoint = -2e5
+    maxPosPoint = 1e5
+    nearDanger = 2
+    # if pacman can eat ghost(very risky param beacuse it take pacman near ghost with much weight)
+    isScary = False if curScaredTimes[0] == 0 else True
+    
+
+
+    # the distance to the closest food
+    foodDist = [manhattanDistance(curPos, food) for food in curFood.asList()]
+    minFoodDist = min(foodDist) if len(foodDist) > 0 else mostDist
+    # the distance to the closest ghost
+    ghostDist = [manhattanDistance(curPos, ghost.getPosition()) for ghost in curGhostStates]
+    minGhostDist = min(ghostDist) if len(ghostDist) > 0 else 0
+    # the distance to the closest capsule
+    capsuleDist = [manhattanDistance(curPos, capsule) for capsule in curCapsules]
+    minCapsuleDist = min(capsuleDist) if len(capsuleDist) > 0 else mostDist
+    
+
+    # if ghost is not near, no need to worry a lot;
+    # but if it is near, then it is scary and can cost life
+    ghostDistEval = 0 if (minGhostDist > nearDanger) else maxNegPoint
+
+    # *) if ghost is not near, try to eat food really hard;
+    # but if it is near, then dont try hard as it costs life
+    # *) if action cause eating dots is greate and if it take us near to dots,
+    # still good else if getting distance from dot, with the more distance,
+    # the lower evaluation score it gets
+    # *) also we prefer a range of safe moves instead of stopping
+    foodDistEval =  (maxPosPoint/2)/(len(foodDist)+1) + (maxPosPoint/2)/minFoodDist if minGhostDist > nearDanger else 0
+
+    # 
+    capsuleDistEval = len(capsuleDist) + minCapsuleDist if minGhostDist < nearDanger else 0
+
+    finalEval = ghostDistEval * \
+        (-1 if isScary else 1) + foodDistEval + capsuleDistEval + currentGameState.getScore()*maxPosPoint/2
+    return finalEval
 
 
 # Abbreviation
