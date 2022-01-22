@@ -60,9 +60,20 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.runValueIteration()
 
     def runValueIteration(self):
-        # Write value iteration code here
-        "*** YOUR CODE HERE ***"
-
+        if self.iterations <= 0:
+            return
+        mdpp: mdp.MarkovDecisionProcess = self.mdp
+        # because q(state-action) values must be according to last values not updated ones
+        values: dict = util.Counter()
+        calQValue = self.computeQValueFromValues
+        getActions = self.mdp.getPossibleActions
+        for state in mdpp.getStates():
+            values[state] = max(
+                [calQValue(state, action) for action in getActions(state)], default=0
+            )  # terminal states with no action have 0 values
+        self.values = values
+        self.iterations -= 1
+        self.runValueIteration()
 
     def getValue(self, state):
         """
@@ -76,8 +87,23 @@ class ValueIterationAgent(ValueEstimationAgent):
           Compute the Q-value of action in state from the
           value function stored in self.values.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Qk+1=Sigma T(R+lambda*Vk) # Vk equals to max Qk for next state
+        mdpp: mdp.MarkovDecisionProcess = self.mdp
+        values: dict = self.values
+        discount: float = self.discount
+        nextActionStates = mdpp.getTransitionStatesAndProbs(state, action)
+        transitions = [
+            (
+                prob,
+                mdpp.getReward(state, action, nextState),
+                values[nextState],
+            )
+            for nextState, prob in nextActionStates
+        ]
+        return sum(
+            [prob * (reward + discount * value) for prob, reward, value in transitions],
+            start=0,
+        )
 
     def computeActionFromValues(self, state):
         """
@@ -88,8 +114,15 @@ class ValueIterationAgent(ValueEstimationAgent):
           there are no legal actions, which is the case at the
           terminal state, you should return None.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # PI = argMax Q
+        mdpp: mdp.MarkovDecisionProcess = self.mdp
+        actions: list = mdpp.getPossibleActions(state)
+        calQValue = self.computeQValueFromValues
+        qValues = [calQValue(state, action) for action in actions]
+        return max(
+            [(qValue, action) for qValue, action in zip(qValues, actions)],
+            default=(None, None), # terminal states which could have no future actions
+        )[1]
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
