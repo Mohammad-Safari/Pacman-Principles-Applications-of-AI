@@ -194,5 +194,70 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
         ValueIterationAgent.__init__(self, mdp, discount, iterations)
 
     def runValueIteration(self):
-        "*** YOUR CODE HERE ***"
+        mdpp: mdp.MarkovDecisionProcess = self.mdp
+        values: dict = self.values
+        states = mdpp.getStates()
+        calQValue = self.computeQValueFromValues
+        getActions = mdpp.getPossibleActions
+        transition = mdpp.getTransitionStatesAndProbs
+        minHeap: util.PriorityQueue = util.PriorityQueue()
+        predecessors = dict()
 
+        # finding predecessors of all states
+        for state in mdpp.getStates():
+            if mdpp.isTerminal(
+                state
+            ):  # not needed because terminal states have 0 actions and default value 0 will be put
+                continue
+            for action in getActions(state):
+                for nextState, prob in transition(
+                    state, action
+                ):  # it means [current]state is predecessor of nextState
+                    # we can reach to one unique nextState with more than one state(multi predecessors)
+                    if not nextState in predecessors:
+                        predecessors[nextState] = set()
+                    predecessors[nextState].add(
+                        state
+                    )  # [current]state is predecessor of nextState
+
+        # finding diff and prioritizing states according to values or max q-values
+        for state in states:
+            if mdpp.isTerminal(
+                state
+            ):  # not needed because terminal states have 0 actions and default value 0 will be put
+                continue
+            diff = abs(
+                max(
+                    [calQValue(state, action) for action in getActions(state)],
+                    default=0,
+                )
+                - values[state]
+            )
+            minHeap.push(state, -diff)
+
+        # calculating values according to priorities we saw on last calculation
+        for i in range(self.iterations):
+            if minHeap.isEmpty():
+                break
+            state = minHeap.pop()
+            if mdpp.isTerminal(
+                state
+            ):  # not needed because terminal states have 0 actions and default value 0 will be put
+                continue
+            values[state] = max(
+                [calQValue(state, action) for action in getActions(state)],
+                default=0,
+            )
+            # check back predecessors of this state also update their priority
+            for p in predecessors[state]:
+                if self.mdp.isTerminal(p):
+                    continue  # not needed because terminal states have 0 actions and default value 0 will be put
+                diff = abs(
+                    max(
+                        [calQValue(p, action) for action in getActions(p)],
+                        default=0,
+                    )
+                    - values[p]
+                )
+                if diff > self.theta:
+                    minHeap.update(p, -diff)
