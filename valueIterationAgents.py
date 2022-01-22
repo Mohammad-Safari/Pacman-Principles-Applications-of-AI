@@ -26,6 +26,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from itertools import cycle
 import mdp, util
 
 from learningAgents import ValueEstimationAgent
@@ -162,7 +163,18 @@ class AsynchronousValueIterationAgent(ValueIterationAgent):
         ValueIterationAgent.__init__(self, mdp, discount, iterations)
 
     def runValueIteration(self):
-        "*** YOUR CODE HERE ***"
+        mdpp: mdp.MarkovDecisionProcess = self.mdp
+        states = cycle(mdpp.getStates())
+        values: dict = self.values
+        calQValue = self.computeQValueFromValues
+        getActions = mdpp.getPossibleActions
+        for i in range(self.iterations):
+            state = next(states)
+            values[state] = max(
+                [calQValue(state, action) for action in getActions(state)],
+                default=0,  # terminal states with no action have 0 values
+            )
+
 
 class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
     """
