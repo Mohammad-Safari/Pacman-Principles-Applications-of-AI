@@ -99,7 +99,7 @@ class QLearningAgent(ReinforcementAgent):
             [(qVal, action) for qVal, action in zip(qValues, legalActions)],
             default=(None, None),
         )[1]
-        action = random.choice(list(legalActions) + [actionArgMax])
+        action = random.choice(list(legalActions)) if util.flipCoin(self.epsilon) else actionArgMax
 
         return action
 
